@@ -106,15 +106,17 @@ juby-app/
 │   ├── services/
 │   │   ├── defindex.service.ts         # Defindex vault integration
 │   │   └── stellar-wallet.service.ts   # Custodial wallet management
+│   ├── examples/
+│   │   └── defindex-example.ts         # Usage examples
 │   └── prisma.ts              # Prisma client
 ├── prisma/
 │   └── schema.prisma          # Database schema
 ├── scripts/
-│   └── test-custodial-deposit.ts  # Test script
-├── docs/
-│   ├── ARCHITECTURE.md        # Architecture documentation
-│   ├── SETUP_GUIDE.md         # Setup instructions
-│   └── PROJECT_CONTEXT.md     # Hackathon context
+│   ├── test-defindex-integration.ts    # Test non-custodial flow
+│   └── test-custodial-deposit.ts       # Test custodial flow
+├── ARCHITECTURE.md            # Architecture documentation
+├── SETUP_GUIDE.md             # Setup instructions
+├── PROJECT_CONTEXT.md         # Hackathon context
 └── README.md                  # This file
 ```
 
@@ -219,29 +221,49 @@ Query vault balance
 
 ## Testing
 
+### Test Non-Custodial Defindex Integration
+
+```bash
+npx tsx scripts/test-defindex-integration.ts
+```
+
+This script demonstrates the non-custodial flow:
+1. Creates test Stellar wallet
+2. Funds wallet with testnet XLM
+3. Builds deposit transaction (unsigned)
+4. Signs transaction with test keypair
+5. Submits to Stellar network
+6. Queries vault balance
+
+**Use case**: Testing with standard Stellar wallets (Freighter, Albedo)
+
 ### Test Custodial Deposit Flow
 
 ```bash
 npx tsx scripts/test-custodial-deposit.ts
 ```
 
-This script:
-1. Creates custodial Stellar wallet
-2. Encrypts and stores keypair
+This script demonstrates the custodial flow:
+1. Creates backend-managed Stellar wallet
+2. Encrypts and stores keypair in database
 3. Funds wallet with testnet XLM
-4. Simulates Defindex deposit
+4. Backend signs Defindex deposit
 5. Verifies database records
 
-### Manual Testing
+**Use case**: Testing World App integration (backend signs)
+
+### Manual API Testing
 
 ```bash
 # Start dev server
 npm run dev
 
-# In another terminal, test deposit
+# Test non-custodial deposit (build transaction)
 curl -X POST http://localhost:3000/api/defindex/deposit \
   -H "Content-Type: application/json" \
   -d '{"userPublicKey":"GXXX...","amount":100000000}'
+
+# Returns unsigned XDR for user to sign
 ```
 
 ---
@@ -295,9 +317,13 @@ npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Lint code
 
+# Database
 npx prisma studio    # Open database GUI
 npx prisma migrate dev  # Run migrations
-npx tsx scripts/test-custodial-deposit.ts  # Test script
+
+# Testing
+npx tsx scripts/test-defindex-integration.ts  # Test non-custodial flow
+npx tsx scripts/test-custodial-deposit.ts     # Test custodial flow
 ```
 
 ### Environment Variables
