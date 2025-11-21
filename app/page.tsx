@@ -26,15 +26,24 @@ export default function Login() {
           />
         </div>
 
-        {/* Welcome text */}
-        <div className="absolute left-1/2 top-[61px] flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
-          <p className="font-manrope text-[18px] font-extrabold tracking-[-0.36px] text-white">
-            Welcome to Juby
+        {/* Logo and Brand at top */}
+        <div className="absolute left-1/2 top-[150px] flex -translate-x-1/2 items-center justify-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
+            <Image
+              src="/assets/juby-logo.svg"
+              alt="Juby"
+              width={24}
+              height={24}
+              className="object-contain"
+            />
+          </div>
+          <p className="font-manrope text-[24px] font-extrabold tracking-[-0.48px] text-white">
+            Juby
           </p>
         </div>
 
         {/* Center animation */}
-        <div className="absolute left-1/2 top-[calc(50%-116px)] h-[418px] w-[418px] -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute left-1/2 top-[350] h-[280px] w-[280px] -translate-x-1/2 -translate-y-1/2">
           <video
             autoPlay
             loop
@@ -47,7 +56,12 @@ export default function Login() {
         </div>
 
         {/* Bottom content - text and button */}
-        <div className="absolute left-[43px] top-[557px] flex w-[305px] flex-col items-center gap-6">
+        <div className="absolute bottom-[140px] left-1/2 flex w-[305px] -translate-x-1/2 flex-col items-center gap-3">
+          {/* Welcome text */}
+          <p className="font-manrope text-[16px] font-semibold tracking-[-0.32px] text-white opacity-80">
+            Welcome to Juby
+          </p>
+
           {/* Main heading */}
           <div className="flex w-full flex-col text-center">
             <h1 className="font-manrope text-[30px] font-extrabold leading-[33px] tracking-[-1.2px] text-white">
@@ -59,12 +73,12 @@ export default function Login() {
           </div>
 
           {/* Subtitle */}
-          <p className="w-full text-center font-manrope text-[14px] font-semibold leading-[20px] tracking-[-0.28px] text-white opacity-70">
+          <p className="w-full text-center font-manrope text-[13px] font-semibold leading-[18px] tracking-[-0.26px] text-white opacity-70">
             Verifica tu humanidad una sola vez para crear tu historial de ahorro transparente.
           </p>
 
           {/* Button */}
-          <Link href="/dashboard" className="relative inline-block">
+          <Link href="/dashboard" className="relative mt-2 inline-block">
             <div className="relative h-[48px] w-[232px] overflow-hidden rounded-[22.5px]">
               {/* Gradient background */}
               <div className="absolute inset-0 bg-linear-to-r from-[#2a75ff] to-[#8ac7ff]" />
