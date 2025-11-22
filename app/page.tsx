@@ -1,7 +1,25 @@
-import Link from "next/link";
+'use client';
+import { walletAuth } from '@/lib/auth/wallet';
+import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
 import Image from "next/image";
+import { useCallback, useState } from 'react';
 
 export default function Login() {
+  const [isPending, setIsPending] = useState(false);
+  const { isInstalled } = useMiniKit();
+
+  const handleAuth = useCallback(async () => {
+    if (!isInstalled || isPending) {
+      return;
+    }
+    setIsPending(true);
+    try {
+      await walletAuth();
+    } catch (error) {
+      console.error('World authentication error', error);
+      setIsPending(false);
+    }
+  }, [isInstalled, isPending]);
   return (
     <div className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-zinc-50">
       {/* Mobile container - 390px width */}
@@ -78,7 +96,11 @@ export default function Login() {
           </p>
 
           {/* Button */}
-          <Link href="/dashboard" className="relative mt-2 inline-block">
+          <button
+            onClick={handleAuth}
+            disabled={isPending || !isInstalled}
+            className="relative mt-2 inline-block disabled:opacity-50"
+          >
             <div className="relative h-[48px] w-[232px] overflow-hidden rounded-[22.5px]">
               {/* Gradient background */}
               <div className="absolute inset-0 bg-linear-to-r from-[#2a75ff] to-[#8ac7ff]" />
@@ -98,11 +120,11 @@ export default function Login() {
 
                 {/* Button text */}
                 <span className="whitespace-nowrap font-manrope text-[14px] font-extrabold tracking-[-0.28px] text-white">
-                  Verificar con World ID
+                  {isPending ? 'Verificando...' : 'Verificar con World ID'}
                 </span>
               </div>
             </div>
-          </Link>
+          </button>
         </div>
       </div>
     </div>

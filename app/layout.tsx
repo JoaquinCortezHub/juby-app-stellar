@@ -1,3 +1,5 @@
+import { auth } from '@/lib/auth';
+import ClientProviders from '@/lib/providers';
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
@@ -13,17 +15,18 @@ export const metadata: Metadata = {
   description: "Verifica tu humanidad una sola vez para crear tu historial de ahorro transparente.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
   return (
     <html lang="es" suppressHydrationWarning>
       <body
         className={`${manrope.variable} antialiased`}
       >
-        {children}
+        <ClientProviders session={session}>{children}</ClientProviders>
       </body>
     </html>
   );
