@@ -276,7 +276,7 @@ export class StellarWalletService {
       select: { stellarPublicKey: true },
     });
 
-    return wallets.map((w) => w.stellarPublicKey);
+    return wallets.map((w: any) => w.stellarPublicKey);
   }
 }
 

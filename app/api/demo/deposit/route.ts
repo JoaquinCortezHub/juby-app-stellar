@@ -59,8 +59,7 @@ export async function POST(request: NextRequest) {
     const depositResult = await defindexService.depositForUser(
       DEMO_USER_ID,
       amountStroops,
-      500, // 5% slippage
-      true  // invest = true
+      500  // 5% slippage
     );
 
     if (!depositResult.success) {
