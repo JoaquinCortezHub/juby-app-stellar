@@ -13,7 +13,7 @@
 import { Keypair } from "@stellar/stellar-sdk";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
-import { StellarWallet } from "@prisma/client";
+import type { StellarWallet } from "@/lib/types/database.types";
 
 // ========================================
 // TYPES

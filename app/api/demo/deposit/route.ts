@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body = await request.json();
-    const { amount } = body;
+    const { amount, invest } = body;
 
     // Validate amount
     if (!amount || amount <= 0) {
@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`🎯 Demo deposit request: ${amount} USDC`);
+    // Default to auto-invest if not specified
+    const shouldInvest = invest !== undefined ? invest : true;
+
+    console.log(`🎯 Demo deposit request: ${amount} USDC (auto-invest: ${shouldInvest})`);
 
     // Initialize services
     const walletService = initializeStellarWalletService();
@@ -73,7 +76,8 @@ export async function POST(request: NextRequest) {
     const depositResult = await defindexService.depositForUser(
       DEMO_USER_ID,
       amountStroops,
-      500  // 5% slippage
+      500,  // 5% slippage
+      shouldInvest  // Pass invest parameter
     );
 
     if (!depositResult.success) {

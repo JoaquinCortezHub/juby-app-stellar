@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth';
 import ClientProviders from '@/lib/providers';
+import PageTransition from '@/components/PageTransition';
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
@@ -26,7 +27,9 @@ export default async function RootLayout({
       <body
         className={`${manrope.variable} antialiased`}
       >
-        <ClientProviders session={session}>{children}</ClientProviders>
+        <ClientProviders session={session}>
+          <PageTransition>{children}</PageTransition>
+        </ClientProviders>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { CheckCircle, X, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -26,6 +26,16 @@ export default function SuccessDialog({
 	onViewDetails,
 }: SuccessDialogProps) {
     const router = useRouter();
+	const [isPending, startTransition] = useTransition();
+	const [isNavigating, setIsNavigating] = useState(false);
+
+	const handleNavigate = () => {
+		setIsNavigating(true);
+		startTransition(() => {
+			router.push('/dashboard/');
+		});
+	};
+
 	if (!isOpen) return null;
 
 	return (
@@ -106,10 +116,18 @@ export default function SuccessDialog({
 					</button>
 
 					<button
-						onClick={() => router.push('/dashboard/')}
-						className="w-full py-4 bg-gray-100 text-gray-700 font-semibold rounded-full hover:bg-gray-200 transition-colors"
+						onClick={handleNavigate}
+						disabled={isPending || isNavigating}
+						className="w-full py-4 bg-gray-100 text-gray-700 font-semibold rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
 					>
-						Volver al inicio
+						{isPending || isNavigating ? (
+							<>
+								<div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-700 border-t-transparent" />
+								<span>Cargando...</span>
+							</>
+						) : (
+							'Volver al inicio'
+						)}
 					</button>
 				</div>
 			</div>

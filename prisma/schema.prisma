@@ -35,6 +35,26 @@ model StellarWallet {
 }
 
 // ========================================
+// CROSSMINT WALLETS (Non-Custodial Smart Wallets)
+// ========================================
+
+model CrossmintWallet {
+  id                      String   @id @default(uuid())
+  userId                  String   @unique @map("user_id") // World ID or user identifier
+  stellarAddress          String   @unique @map("stellar_address") @db.VarChar(56)
+  email                   String   @map("email") // Email used for signing
+  crossmintOwnerLocator   String   @map("crossmint_owner_locator") // e.g., "email:user@example.com"
+  walletAlias             String?  @map("wallet_alias")
+  createdAt               DateTime @default(now()) @map("created_at")
+  lastUsed                DateTime? @map("last_used")
+
+  @@index([userId])
+  @@index([stellarAddress])
+  @@index([email])
+  @@map("crossmint_wallets")
+}
+
+// ========================================
 // DEPOSITS
 // ========================================
 

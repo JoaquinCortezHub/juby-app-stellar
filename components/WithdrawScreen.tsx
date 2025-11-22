@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { ChevronLeft, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -145,6 +145,15 @@ export default function WithdrawScreen() {
 	const [success, setSuccess] = useState(false);
 
 	const router = useRouter();
+	const [isPending, startTransition] = useTransition();
+	const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+	const handleNavigation = (path: string) => {
+		setNavigatingTo(path);
+		startTransition(() => {
+			router.push(path);
+		});
+	};
 
 	// Mock balance - in real app, fetch from API
 	const currentBalance = 120650;
@@ -200,7 +209,7 @@ export default function WithdrawScreen() {
 	};
 
 	const handleBack = () => {
-		router.push('/dashboard');
+		handleNavigation('/dashboard');
 	};
 
 	return (
@@ -209,12 +218,25 @@ export default function WithdrawScreen() {
 			<header className="flex justify-between items-center p-4">
 				<button
 					onClick={handleBack}
-					className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
+					disabled={isPending}
+					className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
 				>
-					<ChevronLeft className="w-5 h-5 text-red-500" />
+					{isPending && navigatingTo === '/dashboard' ? (
+						<div className="animate-spin rounded-full h-5 w-5 border-2 border-red-500 border-t-transparent" />
+					) : (
+						<ChevronLeft className="w-5 h-5 text-red-500" />
+					)}
 				</button>
-				<button className="w-10 h-10 flex items-center justify-center">
-					<Menu className="w-6 h-6 text-gray-700" />
+				<button
+					onClick={() => handleNavigation('/transactions')}
+					disabled={isPending}
+					className="w-10 h-10 flex items-center justify-center hover:bg-white/50 rounded-full transition-colors disabled:opacity-50"
+				>
+					{isPending && navigatingTo === '/transactions' ? (
+						<div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-700 border-t-transparent" />
+					) : (
+						<Menu className="w-6 h-6 text-gray-700" />
+					)}
 				</button>
 			</header>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { ChevronLeft, Menu } from "lucide-react";
 import SuccessDialog from "./DepositSuccessDialog";
 import { useRouter } from "next/navigation";
@@ -180,12 +180,21 @@ const EditableAmount = ({
 // Main Component
 export default function InvestmentScreen() {
 	const [investAmount, setInvestAmount] = useState(7400);
-	const [onlyReceive, setOnlyReceive] = useState(false);
+	const [autoInvest, setAutoInvest] = useState(true);
 	const [showSuccess, setShowSuccess] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const router = useRouter();
+	const [isPending, startTransition] = useTransition();
+	const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+	const handleNavigation = (path: string) => {
+		setNavigatingTo(path);
+		startTransition(() => {
+			router.push(path);
+		});
+	};
 
 	const savings = 120650;
 
@@ -206,6 +215,7 @@ export default function InvestmentScreen() {
 				},
 				body: JSON.stringify({
 					amount: investAmount,
+					invest: autoInvest,
 				}),
 			});
 
@@ -235,11 +245,27 @@ export default function InvestmentScreen() {
 		<div className="min-h-screen bg-linear-to-b from-sky-50 to-blue-50 flex flex-col">
 			{/* Header */}
 			<header className="flex justify-between items-center p-4">
-				<button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
-					<ChevronLeft className="w-5 h-5 text-blue-500" />
+				<button
+					onClick={() => handleNavigation('/dashboard')}
+					disabled={isPending}
+					className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
+				>
+					{isPending && navigatingTo === '/dashboard' ? (
+						<div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent" />
+					) : (
+						<ChevronLeft className="w-5 h-5 text-blue-500" />
+					)}
 				</button>
-				<button className="w-10 h-10 flex items-center justify-center">
-					<Menu className="w-6 h-6 text-gray-700" />
+				<button
+					onClick={() => handleNavigation('/transactions')}
+					disabled={isPending}
+					className="w-10 h-10 flex items-center justify-center hover:bg-white/50 rounded-full transition-colors disabled:opacity-50"
+				>
+					{isPending && navigatingTo === '/transactions' ? (
+						<div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-700 border-t-transparent" />
+					) : (
+						<Menu className="w-6 h-6 text-gray-700" />
+					)}
 				</button>
 			</header>
 
@@ -311,15 +337,15 @@ export default function InvestmentScreen() {
 					onClick={handleInvest}
 					disabled={isLoading}
 				>
-					{isLoading ? 'Procesando...' : 'Recibir e Invertir'}
+					{isLoading ? 'Procesando...' : autoInvest ? 'Depositar e Invertir' : 'Depositar'}
 				</button>
 
 				{/* Checkbox */}
 				<div className="flex justify-center">
 					<Checkbox
-						checked={onlyReceive}
-						onChange={setOnlyReceive}
-						label="Solo quiero recibir, sin invertir"
+						checked={!autoInvest}
+						onChange={(checked) => setAutoInvest(!checked)}
+						label="Solo depositar, sin invertir automáticamente"
 					/>
 				</div>
 			</footer>

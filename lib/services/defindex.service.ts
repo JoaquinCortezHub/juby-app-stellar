@@ -10,7 +10,19 @@ import DefindexSDK, { SupportedNetworks } from "@defindex/sdk";
 import { TransactionBuilder, Networks } from "@stellar/stellar-sdk";
 import { getStellarWalletService } from "./stellar-wallet.service";
 import prisma from "@/lib/prisma";
-import { BridgeStatus } from "@prisma/client";
+
+// ========================================
+// ENUMS
+// ========================================
+
+export enum BridgeStatus {
+  INITIATED = "INITIATED",
+  ATTESTED = "ATTESTED",
+  MINTED = "MINTED",
+  DEPOSITED = "DEPOSITED",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+}
 
 // ========================================
 // TYPES
@@ -345,12 +357,14 @@ export class DefindexService {
    * @param userId - User identifier (World ID)
    * @param amount - Amount in stroops
    * @param slippageBps - Optional slippage tolerance
+   * @param invest - Optional, whether to auto-invest (defaults to config)
    * @returns Transaction result
    */
   async depositForUser(
     userId: string,
     amount: number,
-    slippageBps?: number
+    slippageBps?: number,
+    invest?: boolean
   ): Promise<SubmitTransactionResponse> {
     try {
       const walletService = getStellarWalletService();
@@ -367,6 +381,7 @@ export class DefindexService {
         userPublicKey: stellarPublicKey,
         amount,
         slippageBps,
+        invest,
       });
 
       console.log(`   Transaction built, now signing with backend key...`);
