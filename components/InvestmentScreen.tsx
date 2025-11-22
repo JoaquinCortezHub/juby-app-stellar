@@ -182,6 +182,8 @@ export default function InvestmentScreen() {
 	const [investAmount, setInvestAmount] = useState(7400);
 	const [onlyReceive, setOnlyReceive] = useState(false);
 	const [showSuccess, setShowSuccess] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const router = useRouter();
 
@@ -191,8 +193,38 @@ export default function InvestmentScreen() {
 		setInvestAmount(Math.min(Math.max(newAmount, 0), 15000));
 	};
 
-	const handleInvest = () => {
-		setShowSuccess(true);
+	const handleInvest = async () => {
+		setIsLoading(true);
+		setError(null);
+
+		try {
+			// Call demo deposit API
+			const response = await fetch('/api/demo/deposit', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					amount: investAmount,
+				}),
+			});
+
+			const data = await response.json();
+
+			if (!response.ok || !data.success) {
+				throw new Error(data.error || 'Deposit failed');
+			}
+
+			console.log('✅ Deposit successful:', data);
+
+			// Show success dialog
+			setShowSuccess(true);
+		} catch (err) {
+			console.error('❌ Deposit error:', err);
+			setError(err instanceof Error ? err.message : 'An error occurred');
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	const handleBackHome = () => {
@@ -266,12 +298,20 @@ export default function InvestmentScreen() {
 
 			{/* Footer Actions */}
 			<footer className="px-6 pb-8">
+				{/* Error Message */}
+				{error && (
+					<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+						<p className="text-red-600 text-sm text-center">{error}</p>
+					</div>
+				)}
+
 				{/* CTA Button */}
-				<button 
-					className="w-full py-4 bg-linear-to-r from-sky-400 to-blue-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-shadow mb-4"
+				<button
+					className="w-full py-4 bg-linear-to-r from-sky-400 to-blue-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-shadow mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
 					onClick={handleInvest}
+					disabled={isLoading}
 				>
-					Recibir e Inviertir
+					{isLoading ? 'Procesando...' : 'Recibir e Invertir'}
 				</button>
 
 				{/* Checkbox */}
