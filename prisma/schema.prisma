@@ -26,6 +26,7 @@ model StellarWallet {
 
   // Relations
   deposits             Deposit[]
+  withdrawals          Withdrawal[]
   vaultBalance         VaultBalance?
 
   @@index([userId])
@@ -118,7 +119,8 @@ model Withdrawal {
 
   // Amounts
   amountUsdc           BigInt   @map("amount_usdc")
-  vaultSharesBurned    BigInt   @map("vault_shares_burned")
+  vaultShares          BigInt   @map("vault_shares") // Shares burned during withdrawal
+  slippageBps          Int      @default(500) @map("slippage_bps") // Slippage tolerance
 
   // Transactions
   defindexWithdrawTx   String?  @unique @map("defindex_withdraw_tx") @db.VarChar(64)
@@ -131,6 +133,9 @@ model Withdrawal {
   // Timestamps
   initiatedAt          DateTime @default(now()) @map("initiated_at")
   completedAt          DateTime? @map("completed_at")
+
+  // Relations
+  stellarWallet        StellarWallet @relation(fields: [stellarWalletId], references: [id])
 
   @@index([userId])
   @@index([stellarWalletId])

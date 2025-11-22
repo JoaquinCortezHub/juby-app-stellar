@@ -59,6 +59,20 @@ export interface VaultBalanceResponse {
   error?: string;
 }
 
+export interface WithdrawParams {
+  userPublicKey: string;
+  shares: number; // Number of vault shares to withdraw
+  slippageBps?: number; // Optional, defaults to config
+}
+
+export interface WithdrawResponse {
+  success: boolean;
+  xdr: string; // Unsigned transaction XDR for user to sign
+  vaultAddress: string;
+  shares: number;
+  slippageBps: number;
+}
+
 // ========================================
 // DEFINDEX SERVICE CLASS
 // ========================================
@@ -181,6 +195,72 @@ export class DefindexService {
         error:
           error instanceof Error ? error.message : "Failed to submit transaction",
       };
+    }
+  }
+
+  /**
+   * Build a withdrawal transaction for user to sign
+   *
+   * This method creates an unsigned transaction XDR that the user
+   * must sign with their private key (via MiniKit on frontend).
+   * The withdrawal burns vault shares and returns underlying assets.
+   *
+   * @param params - Withdrawal parameters
+   * @returns Unsigned transaction XDR and metadata
+   */
+  async buildWithdrawTransaction(
+    params: WithdrawParams
+  ): Promise<WithdrawResponse> {
+    try {
+      const slippageBps = params.slippageBps ?? this.config.defaultSlippageBps;
+
+      // Validate shares amount
+      if (params.shares <= 0) {
+        throw new Error("Withdrawal shares must be greater than 0");
+      }
+
+      // Validate public key format (basic check)
+      if (!params.userPublicKey.startsWith("G") || params.userPublicKey.length !== 56) {
+        throw new Error("Invalid Stellar public key format");
+      }
+
+      console.log("Building withdrawal transaction:", {
+        vaultAddress: this.config.vaultAddress,
+        caller: params.userPublicKey,
+        shares: params.shares,
+        slippageBps,
+        network: this.config.network,
+      });
+
+      // Build withdrawal transaction using Defindex SDK
+      const withdrawResponse = await this.sdk.withdrawShares(
+        this.config.vaultAddress,
+        {
+          caller: params.userPublicKey,
+          shares: params.shares,
+          slippageBps,
+        },
+        this.config.network
+      );
+
+      if (!withdrawResponse.xdr) {
+        throw new Error("Failed to build withdrawal transaction: No XDR returned");
+      }
+
+      return {
+        success: true,
+        xdr: withdrawResponse.xdr,
+        vaultAddress: this.config.vaultAddress,
+        shares: params.shares,
+        slippageBps,
+      };
+    } catch (error) {
+      console.error("Error building withdrawal transaction:", error);
+      throw new Error(
+        `Failed to build withdrawal transaction: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -308,6 +388,13 @@ export class DefindexService {
 
       console.log(`✅ Deposit successful! TX: ${submitResponse.transactionHash}`);
 
+      // Extract vault shares from return value
+      // Return value format: [ [amounts], totalShares, null ]
+      let vaultShares: string | undefined;
+      if (Array.isArray(submitResponse.returnValue) && submitResponse.returnValue.length >= 2) {
+        vaultShares = String(submitResponse.returnValue[1]);
+      }
+
       // Record in database
       await this.recordDeposit({
         userId,
@@ -315,7 +402,7 @@ export class DefindexService {
         amount,
         slippageBps: depositResponse.slippageBps,
         defindexDepositTx: submitResponse.transactionHash,
-        vaultShares: submitResponse.returnValue,
+        vaultShares,
       });
 
       return submitResponse;
@@ -421,6 +508,148 @@ export class DefindexService {
         error: error instanceof Error ? error.message : "Failed to get balance",
       };
     }
+  }
+
+  /**
+   * Withdraw from vault with backend signing (custodial)
+   *
+   * This method handles the entire withdrawal flow:
+   * 1. Get user's Stellar address and vault shares
+   * 2. Build withdrawal transaction
+   * 3. Sign with backend-managed key
+   * 4. Submit to Stellar network
+   * 5. Record in database
+   *
+   * @param userId - User identifier (World ID)
+   * @param shares - Number of vault shares to withdraw
+   * @param slippageBps - Optional slippage tolerance
+   * @returns Transaction result
+   */
+  async withdrawForUser(
+    userId: string,
+    shares: number,
+    slippageBps?: number
+  ): Promise<SubmitTransactionResponse> {
+    try {
+      const walletService = getStellarWalletService();
+
+      // Get user's Stellar address
+      const stellarWallet = await walletService.getUserWallet(userId);
+      const stellarPublicKey = stellarWallet.stellarPublicKey;
+
+      console.log(`💸 Withdrawing ${shares} shares for user ${userId}`);
+      console.log(`   Stellar address: ${stellarPublicKey}`);
+
+      // Check user's vault balance
+      const vaultBalance = await prisma.vaultBalance.findUnique({
+        where: { userId },
+      });
+
+      if (!vaultBalance || Number(vaultBalance.vaultShares) < shares) {
+        throw new Error("Insufficient vault shares for withdrawal");
+      }
+
+      // Build withdrawal transaction
+      const withdrawResponse = await this.buildWithdrawTransaction({
+        userPublicKey: stellarPublicKey,
+        shares,
+        slippageBps,
+      });
+
+      console.log(`   Transaction built, now signing with backend key...`);
+
+      // Sign transaction with backend-managed key
+      const signedXdr = await walletService.signTransactionForUser(
+        userId,
+        withdrawResponse.xdr
+      );
+
+      console.log(`   Transaction signed, submitting to Stellar...`);
+
+      // Submit to Stellar network
+      const submitResponse = await this.submitTransaction({ signedXdr });
+
+      if (!submitResponse.success) {
+        throw new Error(submitResponse.error || "Failed to submit transaction");
+      }
+
+      console.log(`✅ Withdrawal successful! TX: ${submitResponse.transactionHash}`);
+
+      // Extract withdrawn amounts from return value
+      // Return value format: [ [amounts] ]
+      let withdrawnAmounts: any = null;
+      if (Array.isArray(submitResponse.returnValue) && submitResponse.returnValue.length >= 1) {
+        withdrawnAmounts = submitResponse.returnValue[0];
+      }
+
+      // Record in database
+      await this.recordWithdrawal({
+        userId,
+        stellarWalletId: stellarWallet.id,
+        shares,
+        slippageBps: withdrawResponse.slippageBps,
+        defindexWithdrawTx: submitResponse.transactionHash,
+        withdrawnAmounts,
+      });
+
+      return submitResponse;
+    } catch (error) {
+      console.error("Error in withdrawForUser:", error);
+      return {
+        success: false,
+        transactionHash: "",
+        error: error instanceof Error ? error.message : "Failed to withdraw",
+      };
+    }
+  }
+
+  /**
+   * Record withdrawal in database
+   *
+   * @param params - Withdrawal details
+   */
+  private async recordWithdrawal(params: {
+    userId: string;
+    stellarWalletId: string;
+    shares: number;
+    slippageBps: number;
+    defindexWithdrawTx: string;
+    withdrawnAmounts?: any;
+  }): Promise<void> {
+    // Calculate amount withdrawn (first amount in the array for single-asset vaults)
+    let amountWithdrawn = BigInt(0);
+    if (Array.isArray(params.withdrawnAmounts) && params.withdrawnAmounts.length > 0) {
+      amountWithdrawn = BigInt(params.withdrawnAmounts[0]);
+    }
+
+    // Create withdrawal record
+    await prisma.withdrawal.create({
+      data: {
+        userId: params.userId,
+        stellarWalletId: params.stellarWalletId,
+        amountUsdc: amountWithdrawn,
+        vaultShares: BigInt(params.shares),
+        slippageBps: params.slippageBps,
+        defindexWithdrawTx: params.defindexWithdrawTx,
+        completedAt: new Date(),
+      },
+    });
+
+    // Update vault balance
+    await prisma.vaultBalance.update({
+      where: { userId: params.userId },
+      data: {
+        vaultShares: {
+          decrement: BigInt(params.shares),
+        },
+        totalDeposited: {
+          decrement: amountWithdrawn,
+        },
+        updatedAt: new Date(),
+      },
+    });
+
+    console.log(`📝 Recorded withdrawal in database`);
   }
 
   /**

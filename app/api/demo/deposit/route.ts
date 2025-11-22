@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initializeStellarWalletService } from "@/lib/services/stellar-wallet.service";
 import { initializeDefindexService, DefindexService } from "@/lib/services/defindex.service";
+import { getDemoUsdcFundingService } from "@/lib/services/demo-usdc-funding.service";
 
 // Hardcoded demo user - in production this would come from auth
 const DEMO_USER_ID = "hackathon-demo-user";
@@ -37,24 +38,37 @@ export async function POST(request: NextRequest) {
     const wallet = await walletService.createWalletForUser(DEMO_USER_ID);
     console.log(`✅ Wallet: ${wallet.stellarPublicKey}`);
 
-    // Step 2: Fund wallet with testnet XLM (if needed)
-    console.log("💰 Funding wallet with testnet XLM...");
-    try {
-      const fundResponse = await fetch(
-        `https://friendbot.stellar.org?addr=${wallet.stellarPublicKey}`
+    // Step 2: Fund wallet with Soroban testnet airdrop
+    // This automatically provides XLM and sets up the account for Soroban usage
+    console.log("💰 Requesting Soroban testnet airdrop...");
+    const usdcFundingService = getDemoUsdcFundingService();
+
+    const fundingResult = await usdcFundingService.fundWalletWithAirdrop(
+      wallet.stellarPublicKey
+    );
+
+    if (!fundingResult.success) {
+      console.error("❌ Airdrop failed:", fundingResult.error);
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to fund wallet with testnet airdrop",
+          details: fundingResult.error,
+        },
+        { status: 500 }
       );
-      if (fundResponse.ok) {
-        console.log("✅ Wallet funded with XLM");
-      }
-    } catch (error) {
-      console.log("⚠️  Wallet funding skipped (may already be funded)");
     }
 
-    // Step 3: Convert amount to stroops (Stellar's smallest unit)
+    console.log("✅ Wallet funded with testnet airdrop");
+    console.log(`   TX Hash: ${fundingResult.airdropTxHash}`);
+
+    // Step 3: Convert amount to stroops (Stellar's smallest unit, 7 decimals)
     const amountStroops = DefindexService.amountToStroops(amount);
 
     // Step 4: Backend signs and deposits to Defindex
-    console.log(`🏦 Depositing ${amount} USDC to Defindex vault...`);
+    // Note: Current vault accepts XLM deposits (shown as "USDC" in UI for demo simplicity)
+    console.log(`🏦 Depositing ${amount} tokens (XLM) to Defindex vault...`);
 
     const depositResult = await defindexService.depositForUser(
       DEMO_USER_ID,
@@ -70,7 +84,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: depositResult.error || "Deposit failed",
-          details: "For demo: Make sure DEFINDEX_VAULT_ADDRESS is set and you have testnet USDC",
+          details: "For demo: Make sure DEFINDEX_VAULT_ADDRESS is set correctly",
         },
         { status: 500 }
       );
