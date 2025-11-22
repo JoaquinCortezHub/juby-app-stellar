@@ -21,9 +21,7 @@ export default function Login() {
     }
   }, [isInstalled, isPending]);
   return (
-    <div className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-zinc-50">
-      {/* Mobile container - 390px width */}
-      <div className="relative h-[844px] w-[390px] overflow-hidden bg-[#424de7]">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#424de7]">
         {/* Dotted pattern overlay */}
         <div
           className="absolute inset-0 opacity-20"
@@ -34,7 +32,7 @@ export default function Login() {
         />
 
         {/* Background overlay SVG */}
-        <div className="absolute left-0 top-0 h-[844px] w-[390px] opacity-15 mix-blend-overlay">
+        <div className="absolute inset-0 opacity-15 mix-blend-overlay">
           <Image
             src="/assets/login-background.svg"
             alt=""
@@ -126,7 +124,6 @@ export default function Login() {
             </div>
           </button>
         </div>
-      </div>
     </div>
   );
 }
