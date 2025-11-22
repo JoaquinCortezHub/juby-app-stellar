@@ -1,24 +1,40 @@
 /**
- * Prisma Client Singleton
+ * Prisma Client Singleton with In-Memory Fallback
  *
- * Ensures a single Prisma Client instance across the application.
- * Prevents too many database connections in development (hot reload).
+ * If DATABASE_URL is not set, uses in-memory mock for demos.
+ * Otherwise, uses real Prisma Client.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { mockPrisma } from "./mock-db";
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+// Check if we should use the mock database
+const useMockDatabase = !process.env.DATABASE_URL;
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+if (useMockDatabase) {
+  console.log("⚠️  DATABASE_URL not set - using in-memory mock database");
+  console.log("   Perfect for demos! Data persists only while server runs.");
+}
+
+// Export either mock or real prisma client
+let prisma: any;
+
+if (useMockDatabase) {
+  prisma = mockPrisma;
+} else {
+  const { PrismaClient } = require('@prisma/client');
+
+  const globalForPrisma = globalThis as unknown as {
+    prisma: typeof PrismaClient | undefined;
+  };
+
+  prisma = globalForPrisma.prisma ?? new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = prisma;
+  }
 }
 
+export { prisma };
 export default prisma;
