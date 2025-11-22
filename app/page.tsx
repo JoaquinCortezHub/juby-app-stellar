@@ -1,65 +1,110 @@
+import Link from "next/link";
 import Image from "next/image";
 
-export default function Home() {
+export default function Login() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-zinc-50">
+      {/* Mobile container - 390px width */}
+      <div className="relative h-[844px] w-[390px] overflow-hidden bg-[#424de7]">
+        {/* Dotted pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.5) 2.5px, transparent 2.5px)',
+            backgroundSize: '24px 24px'
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+        {/* Background overlay SVG */}
+        <div className="absolute left-0 top-0 h-[844px] w-[390px] opacity-15 mix-blend-overlay">
+          <Image
+            src="/assets/login-background.svg"
+            alt=""
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+
+        {/* Logo and Brand at top */}
+        <div className="absolute left-1/2 top-[150px] flex -translate-x-1/2 items-center justify-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
+            <Image
+              src="/assets/juby-logo.svg"
+              alt="Juby"
+              width={24}
+              height={24}
+              className="object-contain"
+            />
+          </div>
+          <p className="font-manrope text-[24px] font-extrabold tracking-[-0.48px] text-white">
+            Juby
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* Center animation */}
+        <div className="absolute left-1/2 top-[350] h-[280px] w-[280px] -translate-x-1/2 -translate-y-1/2">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="h-full w-full object-cover"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <source src="/assets/analitica-login-animation.mp4" type="video/mp4" />
+          </video>
         </div>
-      </main>
+
+        {/* Bottom content - text and button */}
+        <div className="absolute bottom-[140px] left-1/2 flex w-[305px] -translate-x-1/2 flex-col items-center gap-3">
+          {/* Welcome text */}
+          <p className="font-manrope text-[16px] font-semibold tracking-[-0.32px] text-white opacity-80">
+            Welcome to Juby
+          </p>
+
+          {/* Main heading */}
+          <div className="flex w-full flex-col text-center">
+            <h1 className="font-manrope text-[30px] font-extrabold leading-[33px] tracking-[-1.2px] text-white">
+              Construyendo tu
+            </h1>
+            <h1 className="font-manrope text-[30px] font-extrabold leading-[33px] tracking-[-1.2px] text-white">
+              identidad financiera
+            </h1>
+          </div>
+
+          {/* Subtitle */}
+          <p className="w-full text-center font-manrope text-[13px] font-semibold leading-[18px] tracking-[-0.26px] text-white opacity-70">
+            Verifica tu humanidad una sola vez para crear tu historial de ahorro transparente.
+          </p>
+
+          {/* Button */}
+          <Link href="/dashboard" className="relative mt-2 inline-block">
+            <div className="relative h-[48px] w-[232px] overflow-hidden rounded-[22.5px]">
+              {/* Gradient background */}
+              <div className="absolute inset-0 bg-linear-to-r from-[#2a75ff] to-[#8ac7ff]" />
+
+              {/* Button content - centered */}
+              <div className="absolute inset-0 flex items-center justify-center gap-2">
+                {/* Worldcoin logo */}
+                <div className="h-[23px] w-[23px]">
+                  <Image
+                    src="/assets/worldcoin-logo.png"
+                    alt="Worldcoin"
+                    width={23}
+                    height={23}
+                    className="object-cover"
+                  />
+                </div>
+
+                {/* Button text */}
+                <span className="whitespace-nowrap font-manrope text-[14px] font-extrabold tracking-[-0.28px] text-white">
+                  Verificar con World ID
+                </span>
+              </div>
+            </div>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
