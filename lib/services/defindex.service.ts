@@ -160,14 +160,17 @@ export class DefindexService {
         this.config.network
       );
 
+      // Handle different response types
+      const transactionHash = 'hash' in txResponse ? txResponse.hash : txResponse.txHash;
+
       console.log("Transaction submitted successfully:", {
-        hash: txResponse.hash,
+        hash: transactionHash,
         returnValue: txResponse.returnValue,
       });
 
       return {
         success: true,
-        transactionHash: txResponse.hash,
+        transactionHash,
         returnValue: txResponse.returnValue,
       };
     } catch (error) {
