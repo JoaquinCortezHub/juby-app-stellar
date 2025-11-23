@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { getCrossmintService } from "@/lib/services/crossmint.service";
 import prisma from "@/lib/prisma";
 
@@ -19,7 +20,7 @@ import prisma from "@/lib/prisma";
 export async function POST(req: NextRequest) {
   try {
     // 1. Verify authentication
-    const session = await auth();
+    const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -28,9 +29,9 @@ export async function POST(req: NextRequest) {
     const userId = session.user.id;
     const userEmail = session.user.email;
 
-    if (!userId || !userEmail) {
+    if (!userEmail) {
       return NextResponse.json(
-        { error: "User ID or email not found in session" },
+        { error: "User email not found in session" },
         { status: 400 }
       );
     }
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     // 1. Verify authentication
-    const session = await auth();
+    const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
