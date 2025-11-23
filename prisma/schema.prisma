@@ -1,0 +1,172 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// STELLAR WALLETS (Custodial)
+// ========================================
+
+model StellarWallet {
+  id                   String   @id @default(uuid())
+  userId               String   @unique @map("user_id") // World ID or user identifier
+  stellarPublicKey     String   @unique @map("stellar_public_key") @db.VarChar(56)
+  encryptedSecretKey   String   @map("encrypted_secret_key") @db.Text
+  encryptionIv         String   @map("encryption_iv") @db.Text
+  encryptionTag        String   @map("encryption_tag") @db.Text // For AES-GCM authentication
+  createdAt            DateTime @default(now()) @map("created_at")
+  lastUsed             DateTime? @map("last_used")
+
+  // Relations
+  deposits             Deposit[]
+  withdrawals          Withdrawal[]
+  vaultBalance         VaultBalance?
+
+  @@index([userId])
+  @@index([stellarPublicKey])
+  @@map("stellar_wallets")
+}
+
+// ========================================
+// CROSSMINT WALLETS (Non-Custodial Smart Wallets)
+// ========================================
+
+model CrossmintWallet {
+  id                      String   @id @default(uuid())
+  userId                  String   @unique @map("user_id") // World ID or user identifier
+  stellarAddress          String   @unique @map("stellar_address") @db.VarChar(56)
+  email                   String   @map("email") // Email used for signing
+  crossmintOwnerLocator   String   @map("crossmint_owner_locator") // e.g., "email:user@example.com"
+  walletAlias             String?  @map("wallet_alias")
+  createdAt               DateTime @default(now()) @map("created_at")
+  lastUsed                DateTime? @map("last_used")
+
+  @@index([userId])
+  @@index([stellarAddress])
+  @@index([email])
+  @@map("crossmint_wallets")
+}
+
+// ========================================
+// DEPOSITS
+// ========================================
+
+model Deposit {
+  id                   String   @id @default(uuid())
+  userId               String   @map("user_id")
+  stellarWalletId      String   @map("stellar_wallet_id")
+
+  // Worldchain side (CCTP bridge)
+  worldchainTxHash     String?  @map("worldchain_tx_hash") @db.VarChar(66)
+  cctpAttestation      String?  @map("cctp_attestation") @db.Text
+  bridgeStatus         BridgeStatus @default(INITIATED) @map("bridge_status")
+
+  // Stellar side
+  stellarMintTx        String?  @map("stellar_mint_tx") @db.VarChar(64)
+  defindexDepositTx    String?  @unique @map("defindex_deposit_tx") @db.VarChar(64)
+
+  // Amounts
+  amountUsdc           BigInt   @map("amount_usdc") // In stroops (7 decimals)
+  vaultShares          BigInt?  @map("vault_shares") // Shares received from vault
+  slippageBps          Int      @default(500) @map("slippage_bps") // Slippage tolerance
+
+  // Timestamps
+  initiatedAt          DateTime @default(now()) @map("initiated_at")
+  completedAt          DateTime? @map("completed_at")
+
+  // Relations
+  stellarWallet        StellarWallet @relation(fields: [stellarWalletId], references: [id])
+
+  @@index([userId])
+  @@index([stellarWalletId])
+  @@index([bridgeStatus])
+  @@index([defindexDepositTx])
+  @@map("deposits")
+}
+
+enum BridgeStatus {
+  INITIATED  // CCTP bridge initiated on Worldchain
+  ATTESTED   // Attestation received
+  MINTED     // USDC minted on Stellar
+  DEPOSITED  // Deposited into Defindex vault
+  COMPLETED  // Fully completed
+  FAILED     // Failed at any step
+}
+
+// ========================================
+// VAULT BALANCES
+// ========================================
+
+model VaultBalance {
+  id                   String   @id @default(uuid())
+  userId               String   @unique @map("user_id")
+  stellarWalletId      String   @unique @map("stellar_wallet_id")
+  vaultAddress         String   @map("vault_address") @db.VarChar(56)
+
+  // Balances
+  totalDeposited       BigInt   @default(0) @map("total_deposited") // Total USDC deposited
+  vaultShares          BigInt   @default(0) @map("vault_shares") // Total vault shares owned
+  lastYieldCheck       DateTime? @map("last_yield_check")
+  estimatedYield       BigInt   @default(0) @map("estimated_yield") // Estimated yield in USDC
+
+  // Timestamps
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  stellarWallet        StellarWallet @relation(fields: [stellarWalletId], references: [id])
+
+  @@index([userId])
+  @@index([stellarWalletId])
+  @@map("vault_balances")
+}
+
+// ========================================
+// WITHDRAWALS (Future)
+// ========================================
+
+model Withdrawal {
+  id                   String   @id @default(uuid())
+  userId               String   @map("user_id")
+  stellarWalletId      String   @map("stellar_wallet_id")
+
+  // Amounts
+  amountUsdc           BigInt   @map("amount_usdc")
+  vaultShares          BigInt   @map("vault_shares") // Shares burned during withdrawal
+  slippageBps          Int      @default(500) @map("slippage_bps") // Slippage tolerance
+
+  // Transactions
+  defindexWithdrawTx   String?  @unique @map("defindex_withdraw_tx") @db.VarChar(64)
+  stellarBurnTx        String?  @map("stellar_burn_tx") @db.VarChar(64)
+  worldchainMintTx     String?  @map("worldchain_mint_tx") @db.VarChar(66)
+
+  // Status
+  status               WithdrawalStatus @default(INITIATED)
+
+  // Timestamps
+  initiatedAt          DateTime @default(now()) @map("initiated_at")
+  completedAt          DateTime? @map("completed_at")
+
+  // Relations
+  stellarWallet        StellarWallet @relation(fields: [stellarWalletId], references: [id])
+
+  @@index([userId])
+  @@index([stellarWalletId])
+  @@index([status])
+  @@map("withdrawals")
+}
+
+enum WithdrawalStatus {
+  INITIATED   // Withdrawal initiated
+  WITHDRAWN   // Withdrawn from vault
+  BRIDGING    // CCTP bridge in progress
+  COMPLETED   // USDC received on Worldchain
+  FAILED      // Failed at any step
+}
