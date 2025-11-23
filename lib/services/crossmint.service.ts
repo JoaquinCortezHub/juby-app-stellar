@@ -105,7 +105,7 @@ export class CrossmintService {
       headers: {
         "Content-Type": "application/json",
         "X-API-KEY": this.apiKey,
-        "x-idempotency-key": `stellar-wallet-${userId}-${Date.now()}`,
+        // Note: idempotency-key not needed as owner field already guarantees idempotency
       },
       body: JSON.stringify(requestBody),
     });
