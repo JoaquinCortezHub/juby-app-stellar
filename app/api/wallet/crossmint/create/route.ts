@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { getCrossmintService } from "@/lib/services/crossmint.service";
-import prisma from "@/lib/prisma";
 
 /**
  * POST /api/wallet/crossmint/create
@@ -19,77 +15,43 @@ import prisma from "@/lib/prisma";
  */
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verify authentication
-    const session = await getServerSession(authOptions);
+    // DEMO MODE: Mock everything for testing
+    console.log(`🎯 [DEMO] Mock Crossmint wallet creation`);
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Parse request body to get email if provided
+    const body = await req.json();
+    const { email } = body;
+
+    // Mock user session
+    const mockUserId = "demo-user-" + Date.now();
+    const mockUserEmail = email || "demo@example.com";
+
+    console.log(`📬 [DEMO] Creating Crossmint wallet for user ${mockUserId} (${mockUserEmail})`);
+
+    // Mock wallet data
+    const mockAddress = `G${Math.random().toString(36).substring(2, 15).toUpperCase()}${Math.random().toString(36).substring(2, 15).toUpperCase()}DEMO`;
+
+    const mockWallet = {
+      address: mockAddress,
+      email: mockUserEmail,
+      chainType: "stellar" as const,
+      type: "smart" as const,
+      createdAt: new Date(),
+      signerType: "email" as const,
+    };
+
+    // Store in global mock storage
+    if (!(global as any).__mockCrossmintWallets) {
+      (global as any).__mockCrossmintWallets = new Map();
     }
+    (global as any).__mockCrossmintWallets.set(mockUserId, mockWallet);
 
-    const userId = session.user.id;
-    const userEmail = session.user.email;
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email not found in session" },
-        { status: 400 }
-      );
-    }
-
-    console.log(`📬 Creating Crossmint wallet for user ${userId} (${userEmail})`);
-
-    // 2. Check if user already has a Crossmint wallet
-    const existingCrossmintWallet = await prisma.crossmintWallet.findUnique({
-      where: { userId },
-    });
-
-    if (existingCrossmintWallet) {
-      console.log(`📋 User already has Crossmint wallet: ${existingCrossmintWallet.stellarAddress}`);
-      return NextResponse.json({
-        success: true,
-        wallet: {
-          address: existingCrossmintWallet.stellarAddress,
-          email: userEmail,
-          chainType: "stellar",
-          type: "smart",
-          createdAt: existingCrossmintWallet.createdAt,
-        },
-      });
-    }
-
-    // 3. Create Crossmint smart wallet
-    const crossmintService = getCrossmintService();
-
-    const wallet = await crossmintService.getOrCreateStellarWallet({
-      email: userEmail,
-      userId: userId,
-      alias: `juby-${userId}`,
-    });
-
-    // 4. Store wallet in database
-    const crossmintWallet = await prisma.crossmintWallet.create({
-      data: {
-        userId,
-        stellarAddress: wallet.address,
-        email: userEmail,
-        crossmintOwnerLocator: wallet.owner,
-        walletAlias: wallet.alias || `juby-${userId}`,
-      },
-    });
-
-    console.log(`✅ Created and stored Crossmint wallet: ${wallet.address}`);
+    console.log(`✅ [DEMO] Created mock Crossmint wallet: ${mockAddress}`);
 
     // 5. Return wallet details
     return NextResponse.json({
       success: true,
-      wallet: {
-        address: wallet.address,
-        email: userEmail,
-        chainType: wallet.chainType,
-        type: wallet.type,
-        createdAt: crossmintWallet.createdAt,
-        signerType: "email",
-      },
+      wallet: mockWallet,
     });
   } catch (error) {
     console.error("Error creating Crossmint wallet:", error);
@@ -111,38 +73,26 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    // 1. Verify authentication
-    const session = await getServerSession(authOptions);
+    // DEMO MODE: Mock retrieval
+    console.log(`🎯 [DEMO] Mock Crossmint wallet retrieval`);
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Get from mock storage
+    const mockWallets = (global as any).__mockCrossmintWallets as Map<string, any>;
 
-    const userId = session.user.id;
-
-    // 2. Get wallet from database
-    const crossmintWallet = await prisma.crossmintWallet.findUnique({
-      where: { userId },
-    });
-
-    if (!crossmintWallet) {
+    if (!mockWallets || mockWallets.size === 0) {
       return NextResponse.json(
         { error: "Crossmint wallet not found" },
         { status: 404 }
       );
     }
 
+    // Return first wallet (for demo purposes)
+    const wallet = Array.from(mockWallets.values())[0];
+
     // 3. Return wallet details
     return NextResponse.json({
       success: true,
-      wallet: {
-        address: crossmintWallet.stellarAddress,
-        email: crossmintWallet.email,
-        chainType: "stellar",
-        type: "smart",
-        createdAt: crossmintWallet.createdAt,
-        signerType: "email",
-      },
+      wallet: wallet,
     });
   } catch (error) {
     console.error("Error fetching Crossmint wallet:", error);

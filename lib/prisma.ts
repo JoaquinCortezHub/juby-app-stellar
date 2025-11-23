@@ -7,11 +7,15 @@
 
 import { mockPrisma } from "./mock-db";
 
+// FORCE MOCK MODE - Always use mock database regardless of DATABASE_URL
+// TODO: Re-enable real database by setting this to false
+const FORCE_MOCK_MODE = true;
+
 // Check if we should use the mock database
-const useMockDatabase = !process.env.DATABASE_URL;
+const useMockDatabase = FORCE_MOCK_MODE || !process.env.DATABASE_URL;
 
 if (useMockDatabase) {
-  console.log("⚠️  DATABASE_URL not set - using in-memory mock database");
+  console.log("⚠️  Using in-memory mock database (FORCE_MOCK_MODE enabled)");
   console.log("   Perfect for demos! Data persists only while server runs.");
 }
 

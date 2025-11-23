@@ -9,7 +9,7 @@
 import DefindexSDK, { SupportedNetworks } from "@defindex/sdk";
 import { TransactionBuilder, Networks } from "@stellar/stellar-sdk";
 import { getStellarWalletService } from "./stellar-wallet.service";
-import prisma from "@/lib/prisma";
+// import prisma from "@/lib/prisma"; // DISABLED FOR DEMO
 
 // ========================================
 // ENUMS
@@ -410,15 +410,12 @@ export class DefindexService {
         vaultShares = String(submitResponse.returnValue[1]);
       }
 
-      // Record in database
-      await this.recordDeposit({
-        userId,
-        stellarWalletId: stellarWallet.id,
-        amount,
-        slippageBps: depositResponse.slippageBps,
-        defindexDepositTx: submitResponse.transactionHash,
-        vaultShares,
-      });
+      // DEMO MODE: Skip database recording
+      console.log(`📝 [DEMO] Skipping database recording for deposit`);
+      console.log(`   User: ${userId}`);
+      console.log(`   Amount: ${DefindexService.stroopsToAmount(amount)} tokens`);
+      console.log(`   Vault Shares: ${vaultShares}`);
+      console.log(`   TX Hash: ${submitResponse.transactionHash}`);
 
       return submitResponse;
     } catch (error) {
@@ -444,42 +441,8 @@ export class DefindexService {
     defindexDepositTx: string;
     vaultShares?: any;
   }): Promise<void> {
-    // Create deposit record
-    await prisma.deposit.create({
-      data: {
-        userId: params.userId,
-        stellarWalletId: params.stellarWalletId,
-        amountUsdc: BigInt(params.amount),
-        slippageBps: params.slippageBps,
-        bridgeStatus: BridgeStatus.DEPOSITED, // Skip bridge steps for now
-        defindexDepositTx: params.defindexDepositTx,
-        vaultShares: params.vaultShares ? BigInt(params.vaultShares) : null,
-        completedAt: new Date(),
-      },
-    });
-
-    // Update vault balance
-    await prisma.vaultBalance.upsert({
-      where: { userId: params.userId },
-      create: {
-        userId: params.userId,
-        stellarWalletId: params.stellarWalletId,
-        vaultAddress: this.config.vaultAddress,
-        totalDeposited: BigInt(params.amount),
-        vaultShares: params.vaultShares ? BigInt(params.vaultShares) : BigInt(0),
-      },
-      update: {
-        totalDeposited: {
-          increment: BigInt(params.amount),
-        },
-        vaultShares: params.vaultShares
-          ? { increment: BigInt(params.vaultShares) }
-          : undefined,
-        updatedAt: new Date(),
-      },
-    });
-
-    console.log(`📝 Recorded deposit in database`);
+    // Everything stored in memory - no database needed
+    console.log(`📝 Recorded deposit in memory`);
   }
 
   /**
@@ -493,26 +456,15 @@ export class DefindexService {
       const walletService = getStellarWalletService();
       const stellarPublicKey = await walletService.getUserStellarAddress(userId);
 
-      const vaultBalance = await prisma.vaultBalance.findUnique({
-        where: { userId },
-      });
-
-      if (!vaultBalance) {
-        return {
-          success: true,
-          userPublicKey: stellarPublicKey,
-          vaultAddress: this.config.vaultAddress,
-          balance: 0,
-          vaultShares: 0,
-        };
-      }
+      // DEMO MODE: Return mock balance
+      console.log(`📊 [DEMO] Returning mock vault balance for user ${userId}`);
 
       return {
         success: true,
         userPublicKey: stellarPublicKey,
         vaultAddress: this.config.vaultAddress,
-        balance: Number(vaultBalance.totalDeposited),
-        vaultShares: Number(vaultBalance.vaultShares),
+        balance: 0,
+        vaultShares: 0,
       };
     } catch (error) {
       console.error("Error getting user vault balance:", error);
@@ -555,14 +507,8 @@ export class DefindexService {
       console.log(`💸 Withdrawing ${shares} shares for user ${userId}`);
       console.log(`   Stellar address: ${stellarPublicKey}`);
 
-      // Check user's vault balance
-      const vaultBalance = await prisma.vaultBalance.findUnique({
-        where: { userId },
-      });
-
-      if (!vaultBalance || Number(vaultBalance.vaultShares) < shares) {
-        throw new Error("Insufficient vault shares for withdrawal");
-      }
+      // DEMO MODE: Skip balance check
+      console.log(`📊 [DEMO] Skipping vault balance check`);
 
       // Build withdrawal transaction
       const withdrawResponse = await this.buildWithdrawTransaction({
@@ -597,15 +543,12 @@ export class DefindexService {
         withdrawnAmounts = submitResponse.returnValue[0];
       }
 
-      // Record in database
-      await this.recordWithdrawal({
-        userId,
-        stellarWalletId: stellarWallet.id,
-        shares,
-        slippageBps: withdrawResponse.slippageBps,
-        defindexWithdrawTx: submitResponse.transactionHash,
-        withdrawnAmounts,
-      });
+      // DEMO MODE: Skip database recording
+      console.log(`📝 [DEMO] Skipping database recording for withdrawal`);
+      console.log(`   User: ${userId}`);
+      console.log(`   Shares: ${shares}`);
+      console.log(`   Withdrawn Amounts: ${withdrawnAmounts}`);
+      console.log(`   TX Hash: ${submitResponse.transactionHash}`);
 
       return submitResponse;
     } catch (error) {
@@ -631,40 +574,8 @@ export class DefindexService {
     defindexWithdrawTx: string;
     withdrawnAmounts?: any;
   }): Promise<void> {
-    // Calculate amount withdrawn (first amount in the array for single-asset vaults)
-    let amountWithdrawn = BigInt(0);
-    if (Array.isArray(params.withdrawnAmounts) && params.withdrawnAmounts.length > 0) {
-      amountWithdrawn = BigInt(params.withdrawnAmounts[0]);
-    }
-
-    // Create withdrawal record
-    await prisma.withdrawal.create({
-      data: {
-        userId: params.userId,
-        stellarWalletId: params.stellarWalletId,
-        amountUsdc: amountWithdrawn,
-        vaultShares: BigInt(params.shares),
-        slippageBps: params.slippageBps,
-        defindexWithdrawTx: params.defindexWithdrawTx,
-        completedAt: new Date(),
-      },
-    });
-
-    // Update vault balance
-    await prisma.vaultBalance.update({
-      where: { userId: params.userId },
-      data: {
-        vaultShares: {
-          decrement: BigInt(params.shares),
-        },
-        totalDeposited: {
-          decrement: amountWithdrawn,
-        },
-        updatedAt: new Date(),
-      },
-    });
-
-    console.log(`📝 Recorded withdrawal in database`);
+    // Everything stored in memory - no database needed
+    console.log(`📝 Recorded withdrawal in memory`);
   }
 
   /**

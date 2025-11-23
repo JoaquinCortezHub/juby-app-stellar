@@ -44,7 +44,7 @@ const CustomSlider = ({
 
 				{/* Filled track */}
 				<div
-					className="absolute h-full bg-linear-to-r from-red-300 to-red-500 rounded-full"
+					className="absolute h-full bg-linear-to-r from-sky-300 to-blue-500 rounded-full"
 					style={{ width: `${percentage}%` }}
 				/>
 
@@ -60,7 +60,7 @@ const CustomSlider = ({
 
 				{/* Custom thumb */}
 				<div
-					className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 bg-white rounded-full shadow-lg border-2 border-red-400 pointer-events-none"
+					className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 bg-white rounded-full shadow-lg border-2 border-blue-400 pointer-events-none"
 					style={{ left: `${percentage}%` }}
 				/>
 			</div>
@@ -123,12 +123,12 @@ const EditableAmount = ({
 					onBlur={handleBlur}
 					onKeyDown={handleKeyDown}
 					autoFocus
-					className="text-4xl font-bold text-gray-800 bg-transparent border-b-2 border-red-500 outline-none w-32 text-center"
+					className="text-4xl font-bold text-gray-800 bg-transparent border-b-2 border-blue-500 outline-none w-32 text-center"
 				/>
 			) : (
 				<button
 					onClick={handleFocus}
-					className="text-4xl font-bold text-gray-800 hover:text-red-600 transition-colors cursor-text border-b-2 border-transparent hover:border-red-300"
+					className="text-4xl font-bold text-gray-800 hover:text-blue-600 transition-colors cursor-text border-b-2 border-transparent hover:border-blue-300"
 				>
 					{value.toLocaleString("es-AR")}
 				</button>
@@ -142,7 +142,6 @@ export default function WithdrawScreen() {
 	const [withdrawAmount, setWithdrawAmount] = useState(0);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [success, setSuccess] = useState(false);
 
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
@@ -194,12 +193,9 @@ export default function WithdrawScreen() {
 			}
 
 			console.log('✅ Withdrawal successful:', data);
-			setSuccess(true);
 
-			// Redirect to dashboard after 2 seconds
-			setTimeout(() => {
-				router.push('/dashboard');
-			}, 2000);
+			// Navigate to success page
+			router.push(`/withdraw-success?amount=${withdrawAmount}`);
 		} catch (err) {
 			console.error('❌ Withdrawal error:', err);
 			setError(err instanceof Error ? err.message : 'An error occurred');
@@ -213,7 +209,7 @@ export default function WithdrawScreen() {
 	};
 
 	return (
-		<div className="min-h-screen bg-linear-to-b from-red-50 to-orange-50 flex flex-col">
+		<div className="min-h-screen bg-linear-to-b from-sky-50 to-blue-50 flex flex-col">
 			{/* Header */}
 			<header className="flex justify-between items-center p-4">
 				<button
@@ -222,9 +218,9 @@ export default function WithdrawScreen() {
 					className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
 				>
 					{isPending && navigatingTo === '/dashboard' ? (
-						<div className="animate-spin rounded-full h-5 w-5 border-2 border-red-500 border-t-transparent" />
+						<div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent" />
 					) : (
-						<ChevronLeft className="w-5 h-5 text-red-500" />
+						<ChevronLeft className="w-5 h-5 text-blue-500" />
 					)}
 				</button>
 				<button
@@ -240,20 +236,19 @@ export default function WithdrawScreen() {
 				</button>
 			</header>
 
-			{/* Success Message */}
-			{success && (
-				<div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-					<p className="text-green-600 text-sm text-center font-semibold">
-						✅ Retiro exitoso! Redirigiendo...
-					</p>
-				</div>
-			)}
-
 			{/* Main Content */}
 			<main className="flex-1 flex flex-col items-center px-6 pt-8">
-				{/* Coin Icon */}
-				<div className="w-16 h-16 bg-linear-to-br from-red-300 to-red-500 rounded-full shadow-lg mb-6 flex items-center justify-center">
-					<div className="w-12 h-12 bg-linear-to-br from-red-400 to-red-500 rounded-full border-4 border-red-300" />
+				{/* Coin Video */}
+				<div className="w-32 h-32 mb-6 flex items-center justify-center">
+					<video
+						autoPlay
+						loop
+						muted
+						playsInline
+						className="w-32 h-32 object-contain mix-blend-multiply"
+					>
+						<source src="/assets/coin.mp4" type="video/mp4" />
+					</video>
 				</div>
 
 				{/* Title */}
@@ -313,11 +308,11 @@ export default function WithdrawScreen() {
 
 				{/* CTA Button */}
 				<button
-					className="w-full py-4 bg-linear-to-r from-red-400 to-red-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+					className="w-full py-4 bg-linear-to-r from-sky-400 to-blue-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
 					onClick={handleWithdraw}
-					disabled={isLoading || success}
+					disabled={isLoading}
 				>
-					{isLoading ? 'Procesando...' : success ? '¡Completado!' : 'Retirar'}
+					{isLoading ? 'Procesando...' : 'Retirar'}
 				</button>
 
 				{/* Info Text */}

@@ -124,14 +124,14 @@ export default function TransactionHistoryScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-purple-50 to-indigo-50 flex flex-col">
+    <div className="min-h-screen bg-linear-to-b from-sky-50 to-blue-50 flex flex-col">
       {/* Header */}
       <header className="flex items-center gap-4 p-4 bg-white/80 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
         <button
           onClick={handleBack}
           className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
         >
-          <ChevronLeft className="w-5 h-5 text-purple-500" />
+          <ChevronLeft className="w-5 h-5 text-blue-500" />
         </button>
         <h1 className="text-xl font-bold text-gray-800">Historial de Transacciones</h1>
       </header>
@@ -140,7 +140,7 @@ export default function TransactionHistoryScreen() {
       <main className="flex-1 px-4 py-6">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mb-4" />
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mb-4" />
             <p className="text-gray-500 text-sm">Cargando transacciones...</p>
           </div>
         ) : error ? (
@@ -155,8 +155,8 @@ export default function TransactionHistoryScreen() {
           </div>
         ) : transactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-              <ExternalLink className="w-8 h-8 text-purple-400" />
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <ExternalLink className="w-8 h-8 text-blue-400" />
             </div>
             <p className="text-gray-500 text-center">
               No hay transacciones todavía

@@ -12,7 +12,7 @@
 
 import { Keypair } from "@stellar/stellar-sdk";
 import crypto from "crypto";
-import prisma from "@/lib/prisma";
+// import prisma from "@/lib/prisma"; // DISABLED FOR DEMO
 import type { StellarWallet } from "@/lib/types/database.types";
 
 // ========================================
@@ -63,11 +63,13 @@ export class StellarWalletService {
    * @returns Stellar public key and wallet ID
    */
   async createWalletForUser(userId: string): Promise<CreateWalletResult> {
-    // Check if user already has a wallet
-    const existing = await prisma.stellarWallet.findUnique({
-      where: { userId },
-    });
+    // DEMO MODE: Check in-memory storage
+    if (!(global as any).__mockWallets) {
+      (global as any).__mockWallets = new Map();
+    }
+    const mockWallets = (global as any).__mockWallets as Map<string, any>;
 
+    const existing = mockWallets.get(userId);
     if (existing) {
       return {
         userId: existing.userId,
@@ -76,31 +78,37 @@ export class StellarWalletService {
       };
     }
 
-    // Generate new Stellar keypair
-    const keypair = Keypair.random();
+    // DEMO MODE: Use hardcoded testnet wallet with valid checksum
+    // This wallet needs to be funded on testnet via Stellar friendbot
+    const DEMO_SECRET_KEY = process.env.DEMO_STELLAR_SECRET_KEY || "SAFQMVRYDPELFSBXYCC2SSSSF47I2AQ6A7JOTM5THVEAUDWXRP6Z2FT3";
+
+    const keypair = Keypair.fromSecret(DEMO_SECRET_KEY);
     const publicKey = keypair.publicKey();
     const secretKey = keypair.secret();
 
     // Encrypt the secret key
     const encryptedData = this.encryptSecretKey(secretKey);
 
-    // Store in database
-    const wallet = await prisma.stellarWallet.create({
-      data: {
-        userId,
-        stellarPublicKey: publicKey,
-        encryptedSecretKey: encryptedData.encrypted,
-        encryptionIv: encryptedData.iv,
-        encryptionTag: encryptedData.tag,
-      },
-    });
+    // Store in memory (DEMO MODE)
+    const mockWallet = {
+      id: `mock-wallet-${Date.now()}`,
+      userId,
+      stellarPublicKey: publicKey,
+      encryptedSecretKey: encryptedData.encrypted,
+      encryptionIv: encryptedData.iv,
+      encryptionTag: encryptedData.tag,
+      createdAt: new Date(),
+      lastUsed: new Date(),
+    };
 
-    console.log(`✅ Created Stellar wallet for user ${userId}: ${publicKey}`);
+    mockWallets.set(userId, mockWallet);
+
+    console.log(`✅ [DEMO] Using hardcoded testnet wallet for user ${userId}: ${publicKey}`);
 
     return {
-      userId: wallet.userId,
-      stellarPublicKey: wallet.stellarPublicKey,
-      walletId: wallet.id,
+      userId: mockWallet.userId,
+      stellarPublicKey: mockWallet.stellarPublicKey,
+      walletId: mockWallet.id,
     };
   }
 
@@ -111,9 +119,9 @@ export class StellarWalletService {
    * @returns Stellar public key
    */
   async getUserStellarAddress(userId: string): Promise<string> {
-    const wallet = await prisma.stellarWallet.findUnique({
-      where: { userId },
-    });
+    // DEMO MODE: Get from in-memory storage
+    const mockWallets = (global as any).__mockWallets as Map<string, any>;
+    const wallet = mockWallets?.get(userId);
 
     if (!wallet) {
       throw new Error(`No Stellar wallet found for user: ${userId}`);
@@ -129,15 +137,15 @@ export class StellarWalletService {
    * @returns Full wallet record
    */
   async getUserWallet(userId: string): Promise<StellarWallet> {
-    const wallet = await prisma.stellarWallet.findUnique({
-      where: { userId },
-    });
+    // DEMO MODE: Get from in-memory storage
+    const mockWallets = (global as any).__mockWallets as Map<string, any>;
+    const wallet = mockWallets?.get(userId);
 
     if (!wallet) {
       throw new Error(`No Stellar wallet found for user: ${userId}`);
     }
 
-    return wallet;
+    return wallet as StellarWallet;
   }
 
   /**
@@ -160,11 +168,13 @@ export class StellarWalletService {
     // Create Keypair from secret
     const keypair = Keypair.fromSecret(secretKey);
 
-    // Update last used timestamp
-    await prisma.stellarWallet.update({
-      where: { id: wallet.id },
-      data: { lastUsed: new Date() },
-    });
+    // DEMO MODE: Update last used in memory
+    const mockWallets = (global as any).__mockWallets as Map<string, any>;
+    if (mockWallets?.has(userId)) {
+      const mockWallet = mockWallets.get(userId);
+      mockWallet.lastUsed = new Date();
+      mockWallets.set(userId, mockWallet);
+    }
 
     return keypair;
   }
@@ -259,11 +269,9 @@ export class StellarWalletService {
    * @returns true if wallet exists
    */
   async userHasWallet(userId: string): Promise<boolean> {
-    const wallet = await prisma.stellarWallet.findUnique({
-      where: { userId },
-    });
-
-    return wallet !== null;
+    // DEMO MODE: Check in-memory storage
+    const mockWallets = (global as any).__mockWallets as Map<string, any>;
+    return mockWallets?.has(userId) || false;
   }
 
   /**
@@ -272,11 +280,11 @@ export class StellarWalletService {
    * @returns List of all Stellar public keys
    */
   async getAllWalletAddresses(): Promise<string[]> {
-    const wallets = await prisma.stellarWallet.findMany({
-      select: { stellarPublicKey: true },
-    });
+    // DEMO MODE: Get from in-memory storage
+    const mockWallets = (global as any).__mockWallets as Map<string, any>;
+    if (!mockWallets) return [];
 
-    return wallets.map((w: any) => w.stellarPublicKey);
+    return Array.from(mockWallets.values()).map((w: any) => w.stellarPublicKey);
   }
 }
 

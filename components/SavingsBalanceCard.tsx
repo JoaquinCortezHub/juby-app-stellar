@@ -79,38 +79,6 @@ export default function SavingsBalanceCard() {
           </span>
         </div>
 
-        {/* Bridge button */}
-        <div className="flex flex-col items-center gap-1">
-          <button
-            className="flex h-[40.515px] w-[40.515px] items-center justify-center rounded-full bg-[#f5f5f5] transition-colors hover:bg-[#e0e0e0] cursor-pointer disabled:opacity-50 relative"
-            onClick={() => handleNavigation('/bridge')}
-            disabled={isPending}
-          >
-            {isPending && navigatingTo === '/bridge' ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-600 border-t-transparent" />
-            ) : (
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M7 16V8M7 8L3 12M7 8L11 12M17 8V16M17 16L21 12M17 16L13 12"
-                  stroke="#424de7"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            )}
-          </button>
-          <span className="font-manrope text-[12px] font-medium tracking-[-0.36px] text-[#31353b] opacity-60">
-            Bridge
-          </span>
-        </div>
-
         {/* Deposit button */}
         <div className="flex flex-col items-center gap-1">
           <button

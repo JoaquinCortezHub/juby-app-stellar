@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { ChevronLeft, Menu } from "lucide-react";
-import SuccessDialog from "./DepositSuccessDialog";
 import { useRouter } from "next/navigation";
 
 // Utility function to format currency
@@ -181,7 +180,6 @@ const EditableAmount = ({
 export default function InvestmentScreen() {
 	const [investAmount, setInvestAmount] = useState(7400);
 	const [autoInvest, setAutoInvest] = useState(true);
-	const [showSuccess, setShowSuccess] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -227,8 +225,8 @@ export default function InvestmentScreen() {
 
 			console.log('✅ Deposit successful:', data);
 
-			// Show success dialog
-			setShowSuccess(true);
+			// Navigate to success page
+			router.push(`/deposit-success?amount=${investAmount}`);
 		} catch (err) {
 			console.error('❌ Deposit error:', err);
 			setError(err instanceof Error ? err.message : 'An error occurred');
@@ -271,9 +269,17 @@ export default function InvestmentScreen() {
 
 			{/* Main Content */}
 			<main className="flex-1 flex flex-col items-center px-6 pt-8">
-				{/* Coin Icon */}
-				<div className="w-16 h-16 bg-linear-to-br from-yellow-300 to-yellow-500 rounded-full shadow-lg mb-6 flex items-center justify-center">
-					<div className="w-12 h-12 bg-linear-to-br from-yellow-400 to-yellow-500 rounded-full border-4 border-yellow-300" />
+				{/* Coin Video */}
+				<div className="w-32 h-32 mb-6 flex items-center justify-center">
+					<video
+						autoPlay
+						loop
+						muted
+						playsInline
+						className="w-32 h-32 object-contain mix-blend-multiply"
+					>
+						<source src="/assets/coin.mp4" type="video/mp4" />
+					</video>
 				</div>
 
 				{/* Title */}
@@ -349,14 +355,6 @@ export default function InvestmentScreen() {
 					/>
 				</div>
 			</footer>
-			<SuccessDialog
-				isOpen={showSuccess}
-				onClose={() => handleBackHome}
-				amount={investAmount}
-				onViewDetails={() => {
-					setShowSuccess(false);
-				}}
-			/>
 		</div>
 	);
 }

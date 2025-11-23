@@ -43,19 +43,14 @@ export default function Login() {
         </div>
 
         {/* Logo and Brand at top */}
-        <div className="absolute left-1/2 top-[150px] flex -translate-x-1/2 items-center justify-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
-            <Image
-              src="/assets/juby-logo.svg"
-              alt="Juby"
-              width={24}
-              height={24}
-              className="object-contain"
-            />
-          </div>
-          <p className="font-manrope text-[24px] font-extrabold tracking-[-0.48px] text-white">
-            Juby
-          </p>
+        <div className="absolute left-1/2 top-[150px] flex -translate-x-1/2 items-center justify-center">
+          <Image
+            src="/assets/blanco.png"
+            alt="Juby"
+            width={120}
+            height={40}
+            className="object-contain"
+          />
         </div>
 
         {/* Center animation */}

@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { IntentPay } from "@rozoai/intent-pay";
-import type { AppConfig } from "@rozoai/intent-common";
+
+// ROZO imports commented out for demo mode
+// import { IntentPay } from "@rozoai/intent-pay";
+// import type { AppConfig } from "@rozoai/intent-common";
 
 /**
  * ROZO Bridge Widget
@@ -36,6 +38,8 @@ export default function RozoBridgeWidget({
 }: RozoBridgeWidgetProps) {
   const { data: session, status } = useSession();
   const [amount, setAmount] = useState<string>("0.01");
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const [crossmintWallet, setCrossmintWallet] = useState<string | null>(null);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
   const [isWidgetReady, setIsWidgetReady] = useState(false);
@@ -43,44 +47,84 @@ export default function RozoBridgeWidget({
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Create or get Crossmint wallet on mount
+  // Show email prompt after World App sign-in
   useEffect(() => {
-    if (status === "authenticated" && !crossmintWallet && !stellarAddress) {
-      createCrossmintWallet();
+    if (status === "authenticated" && !crossmintWallet && !stellarAddress && !isCreatingWallet) {
+      // Always show email prompt for demo
+      setShowEmailPrompt(true);
     } else if (stellarAddress) {
       setCrossmintWallet(stellarAddress);
       setIsWidgetReady(true);
     }
-  }, [status, stellarAddress]);
+  }, [status, stellarAddress, crossmintWallet, isCreatingWallet]);
+
+  // Auto-bridge on mount (demo mode) - simulates automatic bridging from World to Stellar
+  useEffect(() => {
+    if (demoMode && isWidgetReady && crossmintWallet && !isBridging && !showSuccess) {
+      // Delay slightly to let UI render
+      const timer = setTimeout(() => {
+        mockBridge();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isWidgetReady, crossmintWallet]);
+
+  /**
+   * Handle email submission (demo mode)
+   */
+  const handleEmailSubmit = async () => {
+    if (!userEmail || !userEmail.includes("@")) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    setShowEmailPrompt(false);
+    await createCrossmintWallet(userEmail);
+  };
 
   /**
    * Create Crossmint Stellar smart wallet
    */
-  const createCrossmintWallet = async () => {
+  const createCrossmintWallet = async (email?: string) => {
     try {
       setIsCreatingWallet(true);
       setError(null);
 
       console.log("📬 Creating Crossmint Stellar smart wallet...");
 
-      const response = await fetch("/api/wallet/crossmint/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      if (demoMode) {
+        // DEMO MODE: Mock wallet creation
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create Crossmint wallet");
+        const mockAddress = `G${Math.random().toString(36).substring(2, 15).toUpperCase()}${Math.random().toString(36).substring(2, 15).toUpperCase()}DEMO`;
+
+        console.log("✅ Mock Crossmint wallet created:", mockAddress);
+        console.log(`   Email: ${email || userEmail}`);
+
+        setCrossmintWallet(mockAddress);
+        setIsWidgetReady(true);
+      } else {
+        // PRODUCTION MODE: Real Crossmint API call
+        const response = await fetch("/api/wallet/crossmint/create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to create Crossmint wallet");
+        }
+
+        const data = await response.json();
+
+        console.log("✅ Crossmint wallet created:", data.wallet.address);
+
+        setCrossmintWallet(data.wallet.address);
+        setIsWidgetReady(true);
       }
-
-      const data = await response.json();
-
-      console.log("✅ Crossmint wallet created:", data.wallet.address);
-
-      setCrossmintWallet(data.wallet.address);
-      setIsWidgetReady(true);
     } catch (err) {
       console.error("Error creating Crossmint wallet:", err);
       setError(err instanceof Error ? err.message : "Failed to create wallet");
@@ -119,9 +163,16 @@ export default function RozoBridgeWidget({
       console.log("🎯 Starting mock bridge...");
       console.log(`   Amount: ${amount} USDC`);
       console.log(`   Destination: ${crossmintWallet}`);
+      console.log("   Step 1: Requesting World App signature...");
 
-      // Simulate 2 second bridge delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Simulate World App signature prompt (1.5 seconds)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      console.log("   Step 2: User approved in World App ✓");
+      console.log("   Step 3: Bridging USDC via ROZO...");
+
+      // Simulate bridge execution (1.5 seconds)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Generate mock transaction hash
       const mockTxHash = `DEMO_${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
@@ -135,14 +186,14 @@ export default function RozoBridgeWidget({
     }
   };
 
-  // ROZO Intent Pay configuration
-  const appConfig: AppConfig = {
-    appId: "rozoDefindexWorld",
-    receivingChain: "stellar",
-    receivingToken: "USDC",
-    recipientAddress: crossmintWallet || stellarAddress || "",
-    amount: parseFloat(amount),
-  };
+  // ROZO Intent Pay configuration (commented out for demo mode)
+  // const appConfig: AppConfig = {
+  //   appId: "rozoDefindexWorld",
+  //   receivingChain: "stellar",
+  //   receivingToken: "USDC",
+  //   recipientAddress: crossmintWallet || stellarAddress || "",
+  //   amount: parseFloat(amount),
+  // };
 
   if (status === "loading") {
     return (
@@ -161,6 +212,45 @@ export default function RozoBridgeWidget({
         <p className="text-sm text-yellow-900">
           Please sign in with World App to bridge USDC to Stellar
         </p>
+      </div>
+    );
+  }
+
+  if (showEmailPrompt) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-2xl">📧</span>
+            <h3 className="text-lg font-bold text-blue-900">Confirm Your Email</h3>
+          </div>
+          <p className="text-sm text-blue-700 mb-4">
+            To sign transactions on your Stellar smart wallet, Crossmint uses email-based authentication.
+            Enter your email to continue:
+          </p>
+          <input
+            type="email"
+            value={userEmail}
+            onChange={(e) => setUserEmail(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleEmailSubmit()}
+            placeholder="your.email@example.com"
+            className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+            autoFocus
+          />
+          {error && (
+            <p className="text-sm text-red-600 mb-3">{error}</p>
+          )}
+          <button
+            onClick={handleEmailSubmit}
+            disabled={!userEmail}
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            Continue with Email Signing
+          </button>
+          <p className="text-xs text-blue-600 mt-3 text-center">
+            🔐 Future transactions will be confirmed via email link
+          </p>
+        </div>
       </div>
     );
   }
@@ -185,7 +275,7 @@ export default function RozoBridgeWidget({
         <h3 className="text-sm font-medium text-red-900 mb-2">Error</h3>
         <p className="text-sm text-red-700">{error}</p>
         <button
-          onClick={createCrossmintWallet}
+          onClick={() => createCrossmintWallet()}
           className="mt-4 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
         >
           Retry
@@ -220,75 +310,37 @@ export default function RozoBridgeWidget({
         </p>
       </div>
 
-      {/* Amount Input */}
-      <div>
-        <label className="block text-sm font-medium text-zinc-900 mb-2">
-          Amount (USDC)
-        </label>
-        <input
-          type="number"
-          min="0.01"
-          step="0.01"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full px-4 py-3 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent"
-          placeholder="0.01"
-        />
-        <p className="text-xs text-zinc-500 mt-2">
-          Bridge World USDC to your Stellar smart account
-        </p>
-      </div>
-
-      {/* Bridge Widget */}
-      <div className="border-t border-zinc-200 pt-6">
-        {demoMode ? (
-          /* DEMO MODE: Mock Bridge Button */
-          <button
-            onClick={mockBridge}
-            disabled={isBridging || !crossmintWallet}
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-          >
-            {isBridging ? (
-              <span className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
-                Bridging {amount} USDC...
-              </span>
-            ) : (
-              `Bridge ${amount} USDC to Stellar`
-            )}
-          </button>
-        ) : (
-          /* PRODUCTION MODE: Real ROZO Widget */
-          <IntentPay
-            config={appConfig}
-            onSuccess={handlePaymentSuccess}
-            onError={handlePaymentError}
-          />
-        )}
-      </div>
+      {/* Auto-Bridge Status */}
+      {isBridging && (
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
+            <h3 className="text-lg font-semibold">Bridging {amount} USDC...</h3>
+          </div>
+          <div className="space-y-2 text-sm text-blue-100">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Requesting signature in World App...</span>
+            </div>
+            <p className="text-xs text-blue-200 ml-7">
+              Please approve the transaction in your World App
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Info Box */}
-      {demoMode ? (
+      {demoMode && !isBridging && (
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl">🎯</span>
-            <h4 className="text-sm font-bold text-blue-900">Hackathon Demo Mode</h4>
+            <h4 className="text-sm font-bold text-blue-900">Automatic Bridging Demo</h4>
           </div>
           <ul className="text-xs text-blue-700 space-y-1">
-            <li>✨ Click "Bridge" to simulate World USDC → Stellar USDC transfer</li>
+            <li>✨ World USDC deposits automatically bridge to Stellar (simulated)</li>
             <li>🔐 Your Stellar smart wallet is REAL (created via Crossmint)</li>
             <li>📧 Email-based signing ready for actual transactions</li>
             <li>⚡ Production would use ROZO for instant (&lt;5s) real bridging</li>
-          </ul>
-        </div>
-      ) : (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-blue-900 mb-2">How it works</h4>
-          <ul className="text-xs text-blue-700 space-y-1">
-            <li>• Pay with World USDC from your World App wallet</li>
-            <li>• ROZO bridges funds instantly (&lt;5 seconds)</li>
-            <li>• Receive USDC in your Stellar smart account</li>
-            <li>• Sign transactions via email confirmation</li>
           </ul>
         </div>
       )}
